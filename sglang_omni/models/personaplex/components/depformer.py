@@ -75,7 +75,7 @@ class Depformer(nn.Module):
     def __init__(self, spec: DepformerSpec = DEPFORMER) -> None:
         super().__init__()
         self.spec = spec
-        # Note (kalebkwok): Steps share their input, so one GEMM projects all of them.
+        # Note (Jinjie Guo): Steps share their input, so one GEMM projects all of them.
         self.depformer_in_weight = nn.Parameter(
             torch.empty(spec.steps, spec.dim, spec.input_dim)
         )
