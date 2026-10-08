@@ -235,6 +235,10 @@ final class OmniPhase1BenchmarkTests: XCTestCase {
                         guard !visible.isEmpty else { continue }
                         timeline.previewUpdates += 1
                         if timeline.firstPreview == nil { timeline.firstPreview = .now }
+                        if timeline.previews.count < SessionTimeline.maximumRecordedPreviews,
+                           visible != timeline.previews.last?.text {
+                            timeline.previews.append((.now, visible))
+                        }
                     case .failed:
                         timeline.liveFailed = true
                     default:
@@ -280,6 +284,7 @@ final class OmniPhase1BenchmarkTests: XCTestCase {
                 "stop_to_final_ms": timeline.ms(timeline.stop, timeline.final) as Any,
                 "feed_ms": timeline.ms(timeline.playbackStart, timeline.playbackEnd) as Any,
                 "preview_updates": timeline.previewUpdates,
+                "previews": timeline.previews.map { [timeline.ms(playbackStart, $0.at) as Any, $0.text] },
                 "live_failed": timeline.liveFailed,
                 "window_peak_footprint_bytes": window.windowPeak,
                 "text": text,
@@ -393,6 +398,9 @@ private final class SessionTimeline {
     var stop: ContinuousClock.Instant?
     var final: ContinuousClock.Instant?
     var previewUpdates = 0
+    /// Distinct visible texts with their arrival, to tell a real first preview from one decoded out of silence.
+    static let maximumRecordedPreviews = 40
+    var previews: [(at: ContinuousClock.Instant, text: String)] = []
     var liveFailed = false
 
     func ms(_ from: ContinuousClock.Instant?, _ to: ContinuousClock.Instant?) -> Int? {
