@@ -18,3 +18,7 @@ CODE_SIGN_ENTITLEMENTS = $(VOXT_OMNI_DEV_CODE_SIGN_ENTITLEMENTS_$(TARGET_NAME:c9
 CODE_SIGN_IDENTITY = -
 CODE_SIGN_STYLE = Manual
 DEVELOPMENT_TEAM =
+// Note (Jinjie Guo): VoxtTests runs in the renamed app and spells out its name, so .xctestrun finds VoxtTests.xctest.
+VOXT_OMNI_DEV_PRODUCT_NAME_VoxtTests = VoxtTests
+VOXT_OMNI_DEV_TEST_HOST_VoxtTests = $(BUILT_PRODUCTS_DIR)/Voxt Omni Dev.app/Contents/MacOS/Voxt Omni Dev
+TEST_HOST = $(VOXT_OMNI_DEV_TEST_HOST_$(TARGET_NAME:c99extidentifier):default=$(inherited))
