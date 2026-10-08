@@ -235,8 +235,7 @@ final class OmniPhase1BenchmarkTests: XCTestCase {
                         guard !visible.isEmpty else { continue }
                         timeline.previewUpdates += 1
                         if timeline.firstPreview == nil { timeline.firstPreview = .now }
-                        if timeline.previews.count < SessionTimeline.maximumRecordedPreviews,
-                           visible != timeline.previews.last?.text {
+                        if visible != timeline.previews.last?.text {
                             timeline.previews.append((.now, visible))
                         }
                     case .failed:
@@ -400,7 +399,6 @@ private final class SessionTimeline {
     var stop: ContinuousClock.Instant?
     var final: ContinuousClock.Instant?
     var previewUpdates = 0
-    static let maximumRecordedPreviews = 40
     /// Distinct visible texts with their arrival, to tell a real first preview from one decoded out of silence.
     var previews: [(arrival: ContinuousClock.Instant, text: String)] = []
     var liveFailed = false
