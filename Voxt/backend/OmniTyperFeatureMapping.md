@@ -16,12 +16,12 @@ Voxt covers 51 of 106 rows. 28 rows are partial and 16 rows are gaps. 11 rows ha
 
 Status meanings:
 
-- `equivalent`: Voxt has the feature. Small differences are noted.
+- `equivalent`: Voxt has the feature. The row notes the differences.
 - `partial`: Voxt has part of the feature.
-- `gap`: Voxt has no confirmed equivalent. The row states what was searched.
+- `gap`: Voxt has no confirmed equivalent. The row names what I searched for.
 - `obsolete`: The feature exists only to support OmniTyper itself.
 
-Effort: S is less than 1 day in 1 or 2 files. M is 1 to 3 days in several files. L is more than 3 days or crosses components.
+Effort: S is less than 1 day in 1 or 2 files. M is 1 to 3 days in 3 or more files. L is more than 3 days or crosses components.
 
 ### Fill (19 rows)
 
@@ -252,7 +252,7 @@ The fill for ASR-11 makes the key optional. Then a LAN server over plain HTTP wo
 
 ## Unmerged OmniTyper PRs
 
-All PRs below are open. A PR with several features has one row per feature. sgl-project/sglang-omni#2434 also changes server code under `sglang_omni/`.
+All PRs below were open on 2026-10-07. A PR with 2 or more features has one row for each feature. sgl-project/sglang-omni#2434 also changes server code under `sglang_omni/`.
 
 | PR | Title | Feature | Voxt equivalent | Status | Recommendation |
 | --- | --- | --- | --- | --- | --- |
