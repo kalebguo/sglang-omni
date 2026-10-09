@@ -25,11 +25,11 @@ OmniTyper has 106 features. 62 need no work: Voxt has 51 of them, and 11 exist o
 | Warning when cleanup fails (MOD-5) | Inserts the raw transcript and shows a warning. | Inserts the raw transcript. Only the log records the failure. | Show the same warning. | S |
 | Pinned model revision (ASR-3) | Downloads one fixed revision of Qwen3-ASR-0.6B-4bit. | Downloads the latest revision (main). | Pin the revision for the Omni model. | S |
 | Remote sglang-omni server (ASR-11) | Runs a local server only. It rejects other hosts. | The OpenAI Whisper provider can call a remote sglang-omni server. It requires an API key, which sglang-omni does not use. | Make the API key optional for custom endpoints. See [Appendix](#appendix-remote-sglang-omni-server). | S |
-| Cut-off cleanup is a failure (LLM-6) | Treats a cut-off LLM answer (finish_reason length) as a failure. | Does not check for a cut-off answer. | Treat a cut-off answer as a failure, so it does not reach the cursor. | S |
+| Cut-off cleanup is a failure (LLM-6) | Treats a cut-off LLM answer (finish_reason length) as a failure. | Rejects an incomplete Responses API answer when it does not stream. The chat-completions path and the Responses stream do not check for a cut-off answer. | Treat a cut-off answer in the chat-completions path and the Responses stream as a failure, so it does not reach the cursor. | S |
 | Dictionary CSV import and export (DIC-3) | Imports and exports the dictionary as CSV. | Imports and exports JSON only. | Add CSV. This also moves an OmniTyper dictionary into Voxt. | S |
 | Casual, formal and concise styles (STY-1) | Has 5 style presets: verbatim, clean, casual, formal and concise. | Has Precise Cleanup and Clear Structure. Enhancement off gives verbatim. | Add Casual, Formal and Concise presets. | S |
 | Full clipboard restore (INS-1) | Restores the whole clipboard after it pastes. | Restores text only. It loses images, files and rich text on the clipboard. | Save and restore all clipboard item types. | S |
-| Hide results from clipboard managers (INS-2) | Marks its paste as transient and concealed, so clipboard managers skip it. | Clipboard managers record every result. | Add the same markers. | S |
+| Hide results from clipboard managers (INS-2) | Marks its paste as transient and auto-generated, so clipboard managers skip it. | Clipboard managers record every result. | Add the same markers. | S |
 | Block secure fields (INS-3) | Does not paste into password fields or during secure input. | No check found. | Check for secure input before start and before paste. | S |
 | Stale Accessibility grant (PRM-2) | Detects that a rebuild broke the Accessibility grant and shows the fix. | No detection. Each dev rebuild loses the grant without a message. | Remember the earlier grant. When it is gone, show the remove-and-add-again steps. | S |
 | Signing identity for dev builds (DEV-3) | Signs with a chosen identity, so macOS keeps the permission grants after a rebuild. | The Omni dev build signs ad hoc. Each rebuild loses the grants. | Use a local signing identity when the developer sets one. | S |
@@ -46,15 +46,15 @@ OmniTyper has 106 features. 62 need no work: Voxt has 51 of them, and 11 exist o
 
 | ID | OmniTyper source | Voxt source and notes | Where to change |
 | --- | --- | --- | --- |
-| MOD-3 | `AppModel.swift:177`<br>`AppModel.swift:310`<br>`backend/text_api.py:22` | `App/SessionTextIO.swift:316-321`<br>`Windows/WaveformAnswerCard.swift:128`<br>Voxt Rewrite always shows an answer card. The user must click Inject into Current Input. OmniTyper replaces the selection directly. | In SessionTextIO.shouldPresentRewriteAnswerOverlay, return false when selected text exists. Add a Settings toggle for alwaysShowRewriteAnswerCard. |
-| MOD-5 | `backend/worker.py:283-293` | `App/TranscriptionFlow.swift:95`<br>Voxt falls back to raw text. Voxt only logs the failure. The user sees no warning.<br>`App/Recording/RecordingCaptureFlow.swift:411` | In the TranscriptionFlow.swift:95 fallback branch, call showOverlayReminder (App/Recording/RecordingCaptureFlow.swift:411). |
-| ASR-3 | `backend/server.py:24-26` | `Transcription/OmniASRBackend.swift:26-28`<br>`Transcription/MLXModelDownloadSupport.swift:243`<br>Voxt downloads resolve/main. OmniTyper pins revision 313d850181767edf09f00a9c289becca70e58cd0. | Pin the revision for the Omni repo in MLXModelDownloadSupport.swift:243. |
-| ASR-11 | `ASRStream.swift:52`<br>`backend/server.py:65-145` | `Transcription/RemoteASR/RemoteASRFileRequests.swift:9-13`<br>`Transcription/RemoteASR/RemoteASRTextSupport.swift:49-67`<br>`Core/RemoteProviders/RemoteEndpointSecurityPolicy.swift:45-47`<br>`Transcription/RemoteASR/RemoteASRTranscriber.swift:264`<br>`Voxt/docs/RemoteModel.md:7-35`<br>OmniTyper is local only. Voxt OpenAI Whisper provider can call a remote /v1/audio/transcriptions. It needs a non-empty API key. Plain HTTP with a key works only on loopback. No /v1/realtime streaming. | Make the API key optional for custom endpoints in RemoteASRFileRequests.swift:11-13. sglang-omni inference endpoints need no key. |
-| LLM-6 | `backend/text_api.py:161-199` | `Core/LLM/LLMVisibleOutputSanitizer.swift:78-83`<br>Voxt strips <think>. No check for finish_reason length or tool calls found in Core/LLM. | Treat finish_reason length as a failure in Core/LLM/RemoteLLMStreamingParser.swift. A cut-off cleanup must not reach the cursor. |
+| MOD-3 | `AppModel.swift:177`<br>`AppModel.swift:310`<br>`backend/text_api.py:23` | `App/SessionTextIO.swift:316-321`<br>`Windows/WaveformAnswerCard.swift:128`<br>Voxt Rewrite always shows an answer card. The user must click Inject into Current Input. OmniTyper replaces the selection directly. | In SessionTextIO.shouldPresentRewriteAnswerOverlay, return false when selected text exists. Add a Settings toggle for alwaysShowRewriteAnswerCard. |
+| MOD-5 | `backend/worker.py:283-293` | `App/TranscriptionFlow.swift:95`<br>Voxt falls back to raw text. Voxt only logs the failure. The user sees no warning.<br>`App/Recording/RecordingOverlayFlow.swift:29` | In the TranscriptionFlow.swift:95 fallback branch, call showOverlayReminder (App/Recording/RecordingOverlayFlow.swift:29). |
+| ASR-3 | `backend/server.py:24-26` | `Transcription/OmniASRBackend.swift:26-28`<br>`Transcription/MLXModelDownloadSupport.swift:174`<br>`Transcription/MLXModelDownloadSupport.swift:243`<br>Voxt lists files from tree/main and downloads resolve/main. OmniTyper pins revision 313d850181767edf09f00a9c289becca70e58cd0. | Pin the revision for the Omni repo in MLXModelDownloadSupport.swift:174 and MLXModelDownloadSupport.swift:243. |
+| ASR-11 | `ASRStream.swift:52`<br>`backend/server.py:65-145` | `Transcription/RemoteASR/RemoteASRFileRequests.swift:9-13`<br>`Transcription/RemoteASR/RemoteASRTextSupport.swift:49-67`<br>`Core/RemoteProviders/RemoteEndpointSecurityPolicy.swift:45-47`<br>`Transcription/RemoteASR/RemoteASRTranscriber.swift:264`<br>`Voxt/docs/RemoteModel.md:7-35`<br>OmniTyper is local only. Voxt OpenAI Whisper provider can call a remote /v1/audio/transcriptions. It needs a non-empty API key. Plain HTTP with a key works only on loopback. No /v1/realtime streaming. | Make the API key optional for custom endpoints in RemoteASRFileRequests.swift:11-13. Do the same in RemoteProviderConfiguration.isConfigured (Core/RemoteProviders/RemoteProviderConfiguration.swift:132-148), which requires an API key or access token. isConfigured gates model selection (Settings/Features/FeatureModelCatalogBuilder.swift:320). sglang-omni inference endpoints need no key. |
+| LLM-6 | `backend/text_api.py:161-199` | `Core/Models/RemoteModelConfiguration.swift:364-370`<br>`Core/LLM/RemoteLLMResponsesExecution.swift:161-170`<br>`Core/LLM/RemoteLLMStreamingParser.swift:496-506`<br>`Core/LLM/RemoteLLMRuntimePolicy.swift:93-103`<br>`Core/LLM/LLMVisibleOutputSanitizer.swift:78-83`<br>openAI, codex, volcengine and aliyunBailian use the Responses API. Without streaming, Voxt rejects a Responses status other than completed. The Responses stream does not check the status. Codex always streams. The other providers use the chat-completions path. It does not check finish_reason. Voxt strips <think>. No check for tool calls found in Core/LLM. | Treat finish_reason length as a failure in the chat-completions path (Core/LLM/RemoteLLMCompletionExecution.swift). Check the response status in the Responses stream (RemoteLLMResponsesExecution.swift). A cut-off cleanup must not reach the cursor. |
 | DIC-3 | `Store.swift:307`<br>`Store.swift:320`<br>`LibraryViews.swift:98` | `Core/Dictionary/DictionaryTransferManager.swift:9`<br>`Core/Dictionary/DictionaryTransferManager.swift:110`<br>`Core/Dictionary/DictionaryTransferManager.swift:136`<br>Voxt imports and exports JSON only. | Add CSV to DictionaryTransferManager. This also moves an exported OmniTyper dictionary into Voxt. |
 | STY-1 | `backend/text_api.py:26-32`<br>`Views.swift:15` | `Core/FeaturePromptPreset.swift:128-140`<br>Voxt has Precise Cleanup and Clear Structure. Verbatim equals enhancement off. No casual, formal or concise preset. | Add Casual, Formal and Concise presets in FeaturePromptPreset.swift. |
 | INS-1 | `TextInsertion.swift:134-179` | `App/TextOutputDelivery.swift:54-113`<br>`App/TextOutputDelivery.swift:215`<br>`Core/Utilities/PasteboardTextWriter.swift:18-54`<br>Voxt restores only the previous text. Images, files and rich text on the clipboard are lost. | Snapshot and restore all pasteboard item types in PasteboardTextWriter. |
-| INS-2 | `TextInsertion.swift:157`<br>`TextInsertion.swift:212` | None found<br>Searched org.nspasteboard, TransientType and ConcealedType. No match. Clipboard managers record every Voxt result. | Set org.nspasteboard.TransientType and ConcealedType in PasteboardTextWriter. |
+| INS-2 | `TextInsertion.swift:157`<br>`TextInsertion.swift:212`<br>`TextInsertion.swift:215-216` | None found<br>OmniTyper sets org.nspasteboard.TransientType and org.nspasteboard.AutoGeneratedType. Searched org.nspasteboard, TransientType and AutoGeneratedType in Voxt. No match. Clipboard managers record every Voxt result. | Set org.nspasteboard.TransientType and org.nspasteboard.AutoGeneratedType in PasteboardTextWriter. |
 | INS-3 | `TextInsertion.swift:85`<br>`TextInsertion.swift:246`<br>`AppModel.swift:166` | None found<br>Searched SecureEventInput, IsSecureEventInputEnabled, AXSecureTextField and AXProtectedContent. No match. | Check IsSecureEventInputEnabled() and the AXSecureTextField subrole before start and before paste in TextOutputDelivery. |
 | PRM-2 | `AppModel.swift:126-144`<br>`Store.swift:57-95` | None found<br>Searched stale, tccutil and re-add guidance in permission code. No match. Config/OmniDev.xcconfig:18 signs ad hoc, so each rebuild loses the grant. | Store a was-trusted flag in AccessibilityPermissionManager. Show remove-and-re-add guidance when the flag is set and trust is gone. |
 | DEV-3 | `scripts/build.sh:7-34` | `Voxt/Config/OmniDev.xcconfig:18`<br>`Voxt/Config/Signing.local.xcconfig.example:5-6`<br>OmniTyper reads $CODE_SIGN_IDENTITY. OmniDev.xcconfig forces ad-hoc signing (CODE_SIGN_IDENTITY = -). | Let OmniDev.xcconfig take VOXT_CODE_SIGN_IDENTITY from Signing.local.xcconfig when it exists. |
@@ -63,7 +63,7 @@ OmniTyper has 106 features. 62 need no work: Voxt has 51 of them, and 11 exist o
 | PR-2250-C | sgl-project/sglang-omni#2250 | `Settings/Shell/AppPreferenceKey.swift:131-133`<br>The Voxt idle unload delay has a 1200 s maximum.<br>A reload is short on the native runtime. On an Apple M5 Pro with warm file caches, it reported ready in 0.15-0.21 s. The first Final of a 4.6 s clip then took 0.10 s. | Add a Never option to the idle unload delay. |
 | HIS-3 | `LibraryViews.swift:59`<br>`Views.swift:234-249` | `Core/History/TranscriptionHistoryModels.swift:71-111`<br>Voxt stores the final text and dictionary correction snapshots. It does not store the transcript before LLM cleanup. | Add an optional raw transcript field to TranscriptionHistoryEntry. Show it in the history detail sheet. |
 | HIS-7 | `AppModel.swift:347`<br>`AppModel.swift:356`<br>`LibraryViews.swift:53`<br>`Views.swift:51-56` | None found<br>Searched retranscribe, retryTranscription, transcribeHistoryAudio and reprocessHistory. No history retry found. | Add Transcribe Again to history entries with audio. Reuse the final-pass path in MLXTranscriber. |
-| PR-2434 | sgl-project/sglang-omni#2434 | `Transcription/OmniRealtimeTranscriptionSession.swift:212-218`<br>`sglang_omni_mlx/native/src/realtime.cpp:220-226`<br>Voxt sends language only in session.update. The native realtime server reads no prompt. The final pass has hints (ASR-8). | Port the server part of this PR from Python to realtime.cpp. Add prompt to Voxt session.update. |
+| PR-2434 | sgl-project/sglang-omni#2434 | `Transcription/OmniRealtimeTranscriptionSession.swift:212-218`<br>`sglang_omni_mlx/native/src/realtime.cpp:224-230`<br>Voxt sends language only in session.update. The native realtime server reads no prompt. The final pass has hints (ASR-8). | Port the server part of this PR from Python to realtime.cpp. Add prompt to Voxt session.update. |
 | ASR-2 | `scripts/setup.sh:7-14`<br>`scripts/build.sh:7-34`<br>`PreferencesView.swift:66`<br>`WorkerClient.swift:314` | `Transcription/OmniASRBackend.swift:35-42`<br>`Voxt/backend/run_omni_dev.sh`<br>Voxt enables Omni only in the Voxt Omni Dev build. It needs VOXT_ASR_BACKEND=omni and VOXT_OMNI_RUNTIME. | Bundle qwen3_asr_server, libmlx.dylib and mlx.metallib in the app and resolve them without environment variables. Show the Omni engine in model settings. |
 
 </details>
@@ -86,7 +86,7 @@ OmniTyper has 106 features. 62 need no work: Voxt has 51 of them, and 11 exist o
 | Copy only (INS-9) | Can copy the result without a paste. | Copies only when no text field has focus. | No one asked for copy-only output. The no-field case already copies. |
 | History export as JSON (HIS-4) | Exports history as JSON. | Exports audio only. | No migration step needs it. Meeting export and audio export cover the main data. |
 | Import OmniTyper data (HIS-10) | Stores history in library.json and an Audio folder. | No import. | OmniTyper is a development demo. DIC-3 moves the dictionary. The old files stay on disk. |
-| Open the data folder (HIS-12) | Opens its data folder in Finder. | No such button. | The Logs sheet exports logs. The user chooses the audio folder. |
+| Open the data folder (HIS-12) | Opens its data folder in Finder. | Has an Open folder button for the history audio folder. No button opens the history or dictionary data folder. | The Logs sheet exports logs. The user chooses the audio folder. |
 | Start and stop without a hotkey (APP-2) | Starts, stops and cancels from the menu or the Home button. | The menu has no start, stop or cancel item. | Hotkeys start every Voxt session. Onboarding teaches the hotkey. |
 | Appearance setting (APP-3) | Has light, dark and system appearance. | Follows the system appearance only. | The macOS appearance setting covers it. |
 | macOS 14 (APP-7) | Runs on macOS 14. | Requires macOS 15. | Voxt upstream targets macOS 15. macOS 14 support is an app-wide port. |
@@ -107,7 +107,7 @@ OmniTyper has 106 features. 62 need no work: Voxt has 51 of them, and 11 exist o
 | AUD-6 | `Views.swift:282` | None found<br>No button or elapsed-time view found in Windows/RecordingOverlay*.swift or Windows/Waveform*.swift (searched Button(, elapsed, duration). |
 | ASR-5 | `PreferencesView.swift:61-62`<br>`AppModel.swift:372`<br>`AppModel.swift:416` | `App/Recording/RecordingCaptureFlow.swift:58`<br>`Settings/Shell/AppPreferenceKey.swift:131-133`<br>Voxt prewarms at session start and unloads after an idle delay of 10-1200 s. It has no manual buttons. |
 | LLM-2 | `PreferencesView.swift:74-98`<br>`AppModel.swift:391`<br>`backend/worker.py:228` | `Core/RemoteProviders/RemoteConnectivityTester.swift:38`<br>Voxt uses preset model lists, a custom model ID and a Test button. No live GET /models list found. |
-| LLM-3 | `AppModel.swift:24` | `Core/Security/VoxtSecureStorage.swift:143`<br>Voxt stores the key in the Keychain. The ad-hoc Omni Dev build may not keep it (Voxt/backend/README.md:97). |
+| LLM-3 | `AppModel.swift:24` | `Core/Security/VoxtSecureStorage.swift:143`<br>Voxt stores the key in the Keychain. The ad-hoc Omni Dev build may not keep it (Voxt/backend/README.md:77-78). |
 | LLM-5 | `backend/text_api.py:97` | `Core/RemoteProviders/RemoteEndpointSecurityPolicy.swift:30-47`<br>Voxt validates the URL and blocks credentials over plain HTTP to remote hosts. No redirect block or response size limit found. |
 | DIC-4 | `LibraryViews.swift:73`<br>`Store.swift:291` | `Core/Dictionary/DictionaryLearningMonitor.swift`<br>`Settings/Shell/AppPreferenceKey.swift:181`<br>Voxt learns from edits to delivered text and from history scans. It has no manual correction editor. |
 | INS-4 | `TextInsertion.swift:123-131` | `App/TextOutputDelivery.swift:215`<br>Voxt always pastes with Cmd+V. |
@@ -117,7 +117,7 @@ OmniTyper has 106 features. 62 need no work: Voxt has 51 of them, and 11 exist o
 | INS-9 | `Store.swift:57-95`<br>`PreferencesView.swift:34` | None found<br>Searched paste and clipboard keys in AppPreferenceKey.swift. Only autoCopyWhenNoFocusedInput and the custom paste hotkey exist. |
 | HIS-4 | `LibraryViews.swift:26`<br>`LibraryViews.swift:226` | None found<br>Searched exportJSON, export.*History and NSSavePanel in Core/History and Settings/History. Only audio export exists. |
 | HIS-10 | `Store.swift:148` | None found<br>Searched OmniTyper and library.json in Voxt/. No match. |
-| HIS-12 | `PreferencesView.swift:104-115` | None found<br>Searched activateFileViewerSelecting, selectFile, Show in Finder and Open Folder in Settings. No match.<br>`AppPreferenceKey.swift:128` |
+| HIS-12 | `PreferencesView.swift:104-115` | `Settings/History/HistoryAudioSettingsSheet.swift:84-86`<br>`Core/History/HistoryAudioDirectoryManager.swift:54-56`<br>`AppPreferenceKey.swift:128`<br>The Open folder button opens the history audio folder with activateFileViewerSelecting. No button opens the history or dictionary data folder. Searched activateFileViewerSelecting, selectFile, Show in Finder and Open Folder. The other matches open model folders. |
 | APP-2 | `OmniTyperApp.swift:46-73`<br>`Views.swift:198-204` | `App/MenuWindowCoordinator.swift:93-158`<br>The Voxt menu has Dashboard, History, Dictionary, Microphone and Quit. It has no start, stop or cancel item. |
 | APP-3 | `Views.swift:73`<br>`PreferencesView.swift:123` | `Settings/Shell/SettingsUIStyles.swift:211`<br>Voxt follows the system appearance only. |
 | APP-7 | `Package.swift`<br>`Resources/Info.plist` | `Voxt/Voxt.xcodeproj/project.pbxproj:475`<br>Voxt requires macOS 15.0. OmniTyper requires macOS 14.0. |
@@ -193,7 +193,7 @@ OmniTyper has 106 features. 62 need no work: Voxt has 51 of them, and 11 exist o
 | ID | OmniTyper source | Voxt source and notes |
 | --- | --- | --- |
 | MOD-1 | `AppModel.swift:264-310`<br>`backend/text_api.py:20-32` | `App/TranscriptionFlow.swift:95`<br>`Settings/TranscriptionTypes.swift:51`<br>Voxt runs cleanup only when EnhancementMode is not off. Both dictate without a text API. |
-| MOD-2 | `backend/text_api.py:21`<br>`Views.swift:212`<br>`PreferencesView.swift:45` | `Settings/Shell/AppPreferenceKey.swift:82-84`<br>`App/TranslationFlow.swift:124-130`<br>Voxt also translates selected text with the translation hotkey. |
+| MOD-2 | `backend/text_api.py:22`<br>`Views.swift:212`<br>`PreferencesView.swift:45` | `Settings/Shell/AppPreferenceKey.swift:82-84`<br>`App/TranslationFlow.swift:124-130`<br>Voxt also translates selected text with the translation hotkey. |
 | MOD-6 | `backend/worker.py:283-293` | `App/TranslationFlow.swift:124-130`<br>`App/TranslationFlow.swift:384-389`<br>`App/TranslationFlow.swift:428-434`<br>Voxt shows Translation failed or Rewrite failed and commits no text. |
 | KEY-1 | `Store.swift:57-95`<br>`PreferencesView.swift:20-25`<br>`GlobalShortcut.swift` | `Hotkey/HotkeySupport.swift:144`<br>`Hotkey/HotkeySupport.swift:341-345`<br>The Voxt default is fn. Voxt also accepts mouse buttons. |
 | KEY-2 | `PreferencesView.swift:26`<br>`AppModel.swift:100`<br>`GlobalShortcut.swift:160` | `Hotkey/HotkeySupport.swift:10-13`<br>`Hotkey/HotkeySupport.swift:115-131`<br>Voxt also has double-tap. |
@@ -208,15 +208,15 @@ OmniTyper has 106 features. 62 need no work: Voxt has 51 of them, and 11 exist o
 | AUD-5 | `OmniTyperApp.swift:94-107`<br>`Views.swift:282` | `Windows/RecordingOverlayWindow.swift:30-35`<br>`Settings/GeneralSettingsView.swift:22`<br>Both panels do not take focus. Voxt live text has an on/off toggle. |
 | AUD-7 | `backend/worker.py:196` | `App/Recording/RecordingTextRouting.swift:81`<br>`Transcription/MLXTranscriber.swift:469`<br>Voxt uses local VAD. OmniTyper uses an energy threshold. |
 | AUD-8 | `ASRStream.swift:5-122`<br>`Views.swift:224` | `Transcription/OmniRealtimeTranscriptionSession.swift:81`<br>`Transcription/MLXTranscriber.swift:1117`<br>Voxt Omni preview updates once per second (Voxt/backend/README.md). |
-| ASR-1 | `backend/server.py:65-145` | `sglang_omni_mlx/native/src/server.cpp:353-354`<br>`sglang_omni_mlx/native/src/server.cpp:405-406`<br>`Transcription/OmniASRRuntime.swift:243-249`<br>OmniTyper runs sglang_omni.cli serve with SGLANG_USE_MLX=1. Voxt runs qwen3_asr_server, a C++ binary on MLX without Python. |
+| ASR-1 | `backend/server.py:65-145` | `sglang_omni_mlx/native/src/server.cpp:337-338`<br>`sglang_omni_mlx/native/src/server.cpp:535-539`<br>`Transcription/OmniASRRuntime.swift:242-248`<br>OmniTyper runs sglang_omni.cli serve with SGLANG_USE_MLX=1. Voxt runs qwen3_asr_server, a C++ binary on MLX without Python. |
 | ASR-4 | `backend/server.py:29-55` | `Transcription/MLXModelManager.swift:835-847`<br>Voxt starts the Omni runtime from its installed model directory. |
-| ASR-6 | `AppModel.swift:418`<br>`backend/server.py:205-225` | `Transcription/MLXModelManager.swift:844`<br>`Transcription/OmniASRRuntime.swift:169`<br>Voxt stops earlier runtimes before it starts a new one. |
-| ASR-7 | `backend/server.py:65-145`<br>`Views.swift:144`<br>`WorkerClient.swift:221` | `sglang_omni_mlx/native/src/server.cpp:554`<br>`Transcription/OmniASRRuntime.swift:292`<br>`Settings/Models/ModelDownloadStatusView.swift:12-40`<br>The runtime prints a ready event on stdout when it serves. Voxt waits for it. |
-| ASR-8 | `backend/server.py:147-203` | `Transcription/OmniASRRuntime.swift:432`<br>`Core/Transcription/ASRHintLocalTuning.swift:486`<br>OmniTyper sends the first 20 written forms. Voxt fills {{DICTIONARY_TERMS}}. |
+| ASR-6 | `AppModel.swift:418`<br>`backend/server.py:205-225` | `Transcription/MLXModelManager.swift:844`<br>`Transcription/OmniASRRuntime.swift:168`<br>Voxt stops earlier runtimes before it starts a new one. |
+| ASR-7 | `backend/server.py:65-145`<br>`Views.swift:144`<br>`WorkerClient.swift:221` | `sglang_omni_mlx/native/src/server.cpp:550`<br>`Transcription/OmniASRRuntime.swift:307`<br>`Settings/Models/ModelDownloadStatusView.swift:12-40`<br>The runtime prints a ready event on stdout when it serves. Voxt waits for it. |
+| ASR-8 | `backend/server.py:147-203` | `Transcription/OmniASRRuntime.swift:463`<br>`Core/Transcription/ASRHintLocalTuning.swift:486`<br>OmniTyper sends the first 20 written forms. Voxt fills {{DICTIONARY_TERMS}}. |
 | ASR-9 | `PreferencesView.swift:41`<br>`ASRStream.swift:84` | `Core/Transcription/ASRHintResolver.swift:34`<br>`Transcription/MLXInferenceConfiguration.swift:50`<br>Voxt takes the language from the user main languages (userMainLanguageCodes). |
-| ASR-10 | `backend/worker.py:254`<br>`AppModel.swift:278-290` | `Transcription/MLXTranscriber.swift:1692`<br>`Transcription/OmniASRRuntime.swift:211`<br>Both send the full WAV to /v1/audio/transcriptions. |
+| ASR-10 | `backend/worker.py:254`<br>`AppModel.swift:278-290` | `Transcription/MLXTranscriber.swift:1692`<br>`Transcription/OmniASRRuntime.swift:210`<br>Both send the full WAV to /v1/audio/transcriptions. |
 | LLM-1 | `Store.swift:26-55`<br>`backend/text_api.py:97` | `Core/Models/RemoteModelConfiguration.swift:343`<br>`Voxt/docs/RemoteModel.md`<br>Voxt has 17 LLM providers, Ollama included. |
-| LLM-4 | `Store.swift:26-55`<br>`PreferencesView.swift:98` | `Settings/RemoteProviderSheetSections.swift:541`<br>Voxt calls it Extra Body JSON. |
+| LLM-4 | `Store.swift:26-55`<br>`PreferencesView.swift:92-96` | `Settings/RemoteProviderSheetSections.swift:541`<br>Voxt calls it Extra Body JSON. |
 | LLM-7 | `backend/text_api.py:19-53` | `Core/FeaturePromptPreset.swift:128-140`<br>`Resources/Prompts/en/en-enhancement.txt`<br>`Resources/Prompts/en/en-rewrite.txt`<br>Voxt prompts are user-editable. |
 | DIC-1 | `Store.swift:97`<br>`backend/server.py:147-203` | `Core/Dictionary/DictionaryModels.swift:139`<br>Voxt adds categories and match counts. |
 | DIC-2 | `backend/worker.py:201` | `Core/Dictionary/DictionaryMatchingSupport.swift:314`<br>`Core/Dictionary/DictionaryMatchingSupport.swift:385-394`<br>Voxt replacement terms always apply. |
@@ -265,7 +265,7 @@ OmniTyper has 106 features. 62 need no work: Voxt has 51 of them, and 11 exist o
 
 | ID | OmniTyper source | Voxt source and notes |
 | --- | --- | --- |
-| AUD-4 | `AppModel.swift:80`<br>`backend/worker.py:168` | `Transcription/OmniASRRuntime.swift:80`<br>`sglang_omni_mlx/native/src/server.cpp:357`<br>Voxt has no dictation cap. A Final is split into energy-cut chunks of up to 1200 s. The live preview starts a new segment every 30 s (--max-segment-seconds). |
+| AUD-4 | `AppModel.swift:80`<br>`backend/worker.py:168` | `Transcription/OmniASRRuntime.swift:79`<br>`sglang_omni_mlx/native/src/server.cpp:341`<br>Voxt has no dictation cap. A Final is split into energy-cut chunks of up to 1200 s. The live preview starts a new segment every 30 s (--max-segment-seconds). |
 | HIS-11 | `Store.swift:170-176` | None found<br>OpenTypeless is the earlier OmniTyper name. |
 | APP-6 | `OmniTyperApp.swift:38-43`<br>`OmniTyperApp.swift:109` | None found<br>--snapshot renders README screenshots. --background starts hidden. |
 | DEV-1 | `scripts/setup.sh:7-14`<br>`backend/requirements.txt` | `sglang_omni_mlx/native/scripts/build_runtime.sh`<br>Voxt builds the runtime with CMake and Ninja from a uv venv pinned in build-tools.lock. |
@@ -286,12 +286,12 @@ OmniTyper cannot use a remote server. Voxt can, with three limits.
 - OmniTyper starts a private local server. `ASRStream.swift:52` rejects any host other than 127.0.0.1.
 - OmniTyper runs `sglang_omni.cli serve` with `SGLANG_USE_MLX=1`. It does not use the CUDA server.
 - The Voxt `OpenAI Whisper` remote provider takes a full custom endpoint and a custom model ID (`Voxt/docs/RemoteModel.md:7-35`).
-- It sends a 16 kHz mono WAV with `model`, `response_format=json`, `language` and `prompt` (`Transcription/RemoteASR/RemoteASRTextSupport.swift:49-67`).
+- It sends a 16 kHz mono WAV with `model`, `response_format=json`, `language` and `prompt` (`Transcription/RemoteASR/RemoteASRTextSupport.swift:49-67`, `Transcription/RemoteASR/RemoteASRFileRequests.swift:597`, `Transcription/RemoteASR/RemoteASRTranscriber.swift:619-625`).
 - `sglang_omni/serve/speech_to_text.py:68-76` accepts these fields. So a sglang-omni `/v1/audio/transcriptions` endpoint works.
 
 Limits:
 
-1. Voxt requires a non-empty API key (`RemoteASRFileRequests.swift:11-13`). sglang-omni inference endpoints need no key. Enter any placeholder.
+1. Voxt requires a non-empty API key (`RemoteASRFileRequests.swift:11-13`). Without an API key or access token, the provider is not configured and cannot be selected (`RemoteProviderConfiguration.swift:132-148`, `FeatureModelCatalogBuilder.swift:320`). sglang-omni inference endpoints need no key. Enter any placeholder.
 2. Voxt rejects plain HTTP with a key on a non-loopback host (`RemoteEndpointSecurityPolicy.swift:45-47`). Use HTTPS or an SSH tunnel to localhost.
 3. Voxt does not stream to a remote `/v1/realtime`. The optional pseudo-realtime preview re-uploads WAV snapshots (`RemoteASRTranscriber.swift:264`).
 
@@ -300,7 +300,7 @@ The fill for ASR-11 makes the key optional. Then a LAN server over plain HTTP wo
 ## Sources
 
 - OmniTyper source: last commit that changes `OmniTyper/` is `c4a0145472be6d5c1a566ccc0963fbf462a37bff` (sgl-project/sglang-omni#2519).
-- Worktree HEAD for all refs: `1b2485a0cd084d0c7724e0087d9b949c96f9fdf7`, the head of sgl-project/sglang-omni#2577.
+- Main branch for all refs: `81ad9eb1b5f55517b3662de1cbbc1e3ed496ded8`. It includes the merge of sgl-project/sglang-omni#2577 (`a30e33eb`).
 - Voxt import: hehehai/voxt at `baa6f316` (`Voxt/PROVENANCE.md`).
 - No file outside `OmniTyper/` refers to OmniTyper (`git grep -i omnityper`).
 - PR data: `gh pr view` and `gh pr diff` for each PR in this document.
@@ -310,12 +310,11 @@ Rows by source and status:
 | Status | Main branch | Unmerged PRs | Total |
 | --- | ---: | ---: | ---: |
 | `equivalent` | 45 | 6 | 51 |
-| `partial` | 21 | 7 | 28 |
-| `gap` | 12 | 4 | 16 |
+| `partial` or `gap` | 33 | 11 | 44 |
 | `obsolete` | 9 | 2 | 11 |
 | **Total** | **87** | **19** | **106** |
 
-Unmerged OmniTyper PRs. All 11 were open on 2026-10-08. A PR with 2 or more features has one row for each feature. sgl-project/sglang-omni#2434 also changes server code under `sglang_omni/`.
+Unmerged OmniTyper PRs. All 11 were open on 2026-10-09. A PR with 2 or more features has one row for each feature. sgl-project/sglang-omni#2434 also changes server code under `sglang_omni/`.
 
 | PR | Title | Rows |
 | --- | --- | --- |
