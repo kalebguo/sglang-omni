@@ -82,6 +82,7 @@ def test_generation_defaults_keep_the_runner_assumptions(monkeypatch, is_cuda):
     assert defaults["disable_overlap_schedule"] is True
     assert defaults["disable_cuda_graph"] is not is_cuda
     assert defaults["sampling_backend"] == "pytorch"
+    assert defaults["disable_radix_cache"] is True
 
 
 def test_backbone_config_selects_only_windowed_layers() -> None:
@@ -133,7 +134,7 @@ def test_window_kv_uses_resolved_device_and_cache_settings(
     )
     monkeypatch.setattr(f"{module}.override_server_args", record_override)
     PersonaPlexEngineBuilder().customize_server_args(raw_server_args)
-    if is_cuda_host and device == "cuda" and page_size == 1 and disable_radix_cache:
+    if is_cuda_host and device == "cuda" and page_size == 1:
         assert declarations == []
     else:
         assert declarations == [("sglang_omni.personaplex.window_kv", True)]
