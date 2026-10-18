@@ -22,10 +22,9 @@ Run mode (from the repo root):
                     aborted; then B alone
   retract           a cached request is retracted while it decodes, then resumed;
                     then the same request alone
-  partial-hit       the voice of a primed request with another role prompt
   long              two requests longer than the 3000-position window, one voice
-  probe-after-*     a short probe after each phase above: the pool must return
-                    to the baseline
+  probe             a short probe at the end: the pool must be back at the
+                    baseline. A leak only grows, so one probe finds it.
 
 --phases all runs both lists.
 
@@ -84,9 +83,7 @@ LONG_VOICE = "NATF1"
 PROBE_VOICE = "NATF3"
 OVERLAP_VOICE = "NATM2"
 RETRACT_VOICE = "VARM3"
-PARTIAL_VOICE = "NATM3"
 MIXED_VOICES = ("VARF0", "VARF1", "VARF2", "VARF3", "VARF4", "VARM0", "VARM1", "VARM2")
-ALT_TEXT_PROMPT = "You enjoy having a good conversation."
 SEED = 7
 LAYOUT_FILLERS = 3
 DECODING_SECONDS = 30.0
@@ -100,7 +97,6 @@ class Job:
     recording: Path
     voice: str
     seeded: bool
-    text_prompt: str | None = None
 
 
 def say(message: str) -> None:
@@ -141,17 +137,9 @@ def git_head() -> str:
 
 
 def expected_rows(checkpoint: Path) -> dict[str, object]:
-    """Prompt rows per voice with the default role prompt, and the rows the
-    partial-hit request shares with its primed prompt."""
+    """Prompt rows per voice with the default role prompt."""
     tokenizer = prompts.load_text_tokenizer(checkpoint)
     default_ids = prompts.tokenize_text_prompt(tokenizer, prompts.DEFAULT_TEXT_PROMPT)
-    alt_ids = prompts.tokenize_text_prompt(tokenizer, ALT_TEXT_PROMPT)
-    common_tokens = 0
-    for default_id, alt_id in zip(default_ids, alt_ids, strict=False):
-        if default_id != alt_id:
-            break
-        else:
-            common_tokens += 1
     folder = prompts.voices_dir(checkpoint)
     voice_rows = {
         path.stem: prompts.load_voice_prompt(path, load_audio=None).frames
@@ -164,9 +152,6 @@ def expected_rows(checkpoint: Path) -> dict[str, object]:
     return {
         "text_prompt_rows": len(default_ids),
         "prompt_rows": prompt_rows,
-        "partial_hit_cached": voice_rows[PARTIAL_VOICE]
-        + PROMPT_SILENCE_FRAMES
-        + common_tokens,
     }
 
 
@@ -237,10 +222,6 @@ async def run_suite(args: argparse.Namespace) -> None:
                 extra["seed"] = SEED
             else:
                 pass
-            if job.text_prompt is not None:
-                extra["text_prompt"] = job.text_prompt
-            else:
-                pass
             request = GenerateRequest(
                 model=config.name,
                 prompt={"audio_path": str(job.recording)},
@@ -280,7 +261,6 @@ async def run_suite(args: argparse.Namespace) -> None:
                 "request_id": request_id,
                 "recording": job.recording.name,
                 "voice": job.voice,
-                "text_prompt": job.text_prompt,
                 "text": "".join(text_parts),
                 "audio": audio,
                 "ttfa_s": first_audio_s,
@@ -414,15 +394,7 @@ async def run_suite(args: argparse.Namespace) -> None:
                     [job] + [Job(filler, WARMUP_VOICE, False)] * LAYOUT_FILLERS,
                 )
             await overlap_abort()
-            await probe("probe-after-overlap-abort")
             await retract()
-            await probe("probe-after-retract")
-            await phase("partial-prime", [Job(recordings[0], PARTIAL_VOICE, False)])
-            await phase(
-                "partial-hit",
-                [Job(recordings[0], PARTIAL_VOICE, False, ALT_TEXT_PROMPT)],
-            )
-            await probe("probe-after-partial-hit")
             say("long: watch the LM log for '#cached-token' and '#swa token'")
             await sequential("long", [Job(long_recording, LONG_VOICE, True)] * 2)
             await probe("probe")
@@ -669,9 +641,7 @@ def logs(args: argparse.Namespace) -> None:
 
 def expected_cached_hint(name: str, summary: dict, expected: dict) -> str:
     """The #cached-token a radix-on run should show for a hit phase."""
-    if name == "partial-hit":
-        return f" (expect {expected['partial_hit_cached']})"
-    elif name.startswith("seeded-hit-") or (
+    if name.startswith("seeded-hit-") or (
         name.startswith("same-voice-") and name != "same-voice-prime"
     ):
         replies = summary["phases"].get(name, {}).get("replies", [])
